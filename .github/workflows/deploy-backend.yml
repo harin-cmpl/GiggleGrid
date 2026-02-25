@@ -42,11 +42,17 @@ jobs:
 
       - name: SAM deploy
         run: |
+          BUCKET_FLAG="--resolve-s3"
+          if [ -n "${{ vars.SAM_ARTIFACT_BUCKET || '' }}" ]; then
+            BUCKET_FLAG="--s3-bucket ${{ vars.SAM_ARTIFACT_BUCKET }}"
+          fi
+
           sam deploy \
             --stack-name ${{ env.SAM_STACK_NAME }} \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            $BUCKET_FLAG \
             --parameter-overrides \
               Environment=${{ vars.ENVIRONMENT || 'production' }} \
               CustomDomain=${{ vars.CUSTOM_DOMAIN || '__DOMAIN__' }} \
