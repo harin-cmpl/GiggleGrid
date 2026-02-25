@@ -4,7 +4,11 @@
 
 import { CONFIG } from "../config.js";
 
-const QR_CODE_CDN = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
+const QR_SOURCES = [
+  "/assets/qrcode.min.js", // local bundled minified copy
+  "/assets/qrcode.js", // local unminified copy
+  "https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js", // CDN fallback (1.4.4 ships build)
+];
 
 /** @type {number|null} */
 let resetTimerId = null;
@@ -74,18 +78,36 @@ async function ensureQRCodeLoaded() {
     return;
   }
 
-  await new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = QR_CODE_CDN;
-    script.crossOrigin = "anonymous";
-    script.onload = () => {
-      if (typeof QRCode !== "undefined") {
-        resolve();
-      } else {
-        reject(new Error("QRCode library failed to initialize"));
-      }
-    };
-    script.onerror = () => reject(new Error("Failed to load QRCode library"));
-    document.head.appendChild(script);
-  });
+  let lastError;
+
+  for (const src of QR_SOURCES) {
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.crossOrigin = "anonymous";
+      script.onload = () => {
+        if (typeof QRCode !== "undefined") {
+          resolve();
+        } else {
+          reject(new Error(`QRCode library failed to initialize from ${src}`));
+        }
+      };
+      script.onerror = () => reject(new Error(`Failed to load QRCode library from ${src}`));
+      document.head.appendChild(script);
+    }).then(
+      () => {
+        lastError = undefined;
+      },
+      (err) => {
+        lastError = err;
+      },
+    );
+
+    if (typeof QRCode !== "undefined") {
+      return;
+    }
+  }
+
+  throw lastError ?? new Error("QRCode library not available");
 }
