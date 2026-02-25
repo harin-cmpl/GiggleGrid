@@ -264,9 +264,11 @@ Resources:
                   - s3:DeleteObject
                   - s3:ListBucket
                   - s3:GetObject
-                Resource:
-                  - !GetAtt FrontendBucket.Arn
-                  - !Sub "${FrontendBucket.Arn}/*"
+                  - cloudfront:GetDistribution
+                  - cloudfront:ListDistributions
+                  - cloudfront:CreateInvalidation
+                  - cloudfront:UpdateDistribution
+                Resource: "*"
               - Sid: CloudFrontInvalidate
                 Effect: Allow
                 Action:
