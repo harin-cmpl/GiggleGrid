@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Transparent center with decorative Women's Day border -->
+  <defs>
+    <linearGradient id="border-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:0.9" />
+      <stop offset="50%" style="stop-color:#e91e8c;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#9b59b6;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer frame -->
+  <rect x="0" y="0" width="1920" height="1080" rx="0" fill="none"
+        stroke="url(#border-grad)" stroke-width="40" />
+
+  <!-- Inner decorative border -->
+  <rect x="30" y="30" width="1860" height="1020" rx="10" fill="none"
+        stroke="url(#border-grad)" stroke-width="4" stroke-dasharray="12,6" />
+
+  <!-- Corner flowers (simple) -->
+  <g fill="#e91e8c" opacity="0.8">
+    <!-- Top-left -->
+    <circle cx="60" cy="60" r="18" />
+    <circle cx="45" cy="45" r="8" fill="#c39bd3" />
+    <!-- Top-right -->
+    <circle cx="1860" cy="60" r="18" />
+    <circle cx="1875" cy="45" r="8" fill="#c39bd3" />
+    <!-- Bottom-left -->
+    <circle cx="60" cy="1020" r="18" />
+    <circle cx="45" cy="1035" r="8" fill="#c39bd3" />
+    <!-- Bottom-right -->
+    <circle cx="1860" cy="1020" r="18" />
+    <circle cx="1875" cy="1035" r="8" fill="#c39bd3" />
+  </g>
+
+  <!-- Bottom banner -->
+  <rect x="560" y="990" width="800" height="60" rx="30" fill="url(#border-grad)" opacity="0.85" />
+  <text x="960" y="1030" text-anchor="middle" font-family="Segoe UI, sans-serif"
+        font-size="28" font-weight="700" fill="white" letter-spacing="2">
+    Happy Women&#39;s Day 2026
+  </text>
+
+  <!-- Top accent -->
+  <text x="960" y="65" text-anchor="middle" font-family="Segoe UI, sans-serif"
+        font-size="20" font-weight="600" fill="white" opacity="0.7" letter-spacing="4">
+    GIGGLEGRID PHOTOBOOTH
+  </text>
+</svg>
