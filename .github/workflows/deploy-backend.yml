@@ -55,6 +55,6 @@ jobs:
               S3RetentionDays=${{ vars.S3_RETENTION_DAYS || '7' }} \
               MaxImageBytes=${{ vars.MAX_IMAGE_BYTES || '10485760' }} \
               AllowedOrigin=${{ vars.ALLOWED_ORIGIN || '*' }} \
-              GitHubOrg=${{ vars.GITHUB_ORG || '' }} \
-              GitHubRepo=${{ vars.GITHUB_REPO || 'GiggleGrid' }}
+              GitHubOrg=${{ vars.ORG || github.repository_owner }} \
+              GitHubRepo=${{ vars.REPO || github.event.repository.name }}
         working-directory: backend
