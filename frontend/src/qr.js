@@ -4,6 +4,8 @@
 
 import { CONFIG } from "../config.js";
 
+const QR_CODE_CDN = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
+
 /** @type {number|null} */
 let resetTimerId = null;
 
@@ -22,6 +24,8 @@ export async function renderQR(url, containerEl) {
 
   const canvas = document.createElement("canvas");
   containerEl.appendChild(canvas);
+
+  await ensureQRCodeLoaded();
 
   /* global QRCode */
   await QRCode.toCanvas(canvas, url, {
@@ -63,4 +67,25 @@ export function hideQRScreen(qrScreenEl) {
     clearTimeout(resetTimerId);
     resetTimerId = null;
   }
+}
+
+async function ensureQRCodeLoaded() {
+  if (typeof QRCode !== "undefined") {
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = QR_CODE_CDN;
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      if (typeof QRCode !== "undefined") {
+        resolve();
+      } else {
+        reject(new Error("QRCode library failed to initialize"));
+      }
+    };
+    script.onerror = () => reject(new Error("Failed to load QRCode library"));
+    document.head.appendChild(script);
+  });
 }
