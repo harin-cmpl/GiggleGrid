@@ -1,0 +1,233 @@
+/* ── GiggleGrid — Main Styles ─────────────────────────────── */
+
+:root {
+  --color-primary: #9b59b6;
+  --color-primary-light: #c39bd3;
+  --color-accent: #e91e8c;
+  --color-bg: #1a1a2e;
+  --color-text: #ffffff;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --transition-speed: 0.3s;
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+}
+
+/* ── App container ──────────────────────────────────────────── */
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Video feed ─────────────────────────────────────────────── */
+
+#video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror for selfie feel */
+}
+
+/* ── Overlay canvas (same size as video) ────────────────────── */
+
+.overlay-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Prompt ──────────────────────────────────────────────────── */
+
+.prompt {
+  position: absolute;
+  bottom: 8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-overlay);
+  padding: 1rem 2.5rem;
+  border-radius: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Countdown ──────────────────────────────────────────────── */
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.countdown span {
+  font-size: 12rem;
+  font-weight: 800;
+  color: var(--color-text);
+  text-shadow:
+    0 0 40px var(--color-accent),
+    0 0 80px var(--color-primary);
+  animation: count-pop 1s ease-out;
+}
+
+@keyframes count-pop {
+  0% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+/* ── Flash effect ───────────────────────────────────────────── */
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.flash.animate {
+  animation: flash-anim 0.4s ease-out forwards;
+}
+
+@keyframes flash-anim {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── QR screen ──────────────────────────────────────────────── */
+
+.qr-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-bg) 0%,
+    #16213e 50%,
+    #0f3460 100%
+  );
+  z-index: 40;
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.qr-screen h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--color-primary-light), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.qr-container {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(155, 89, 182, 0.3);
+}
+
+.qr-container canvas {
+  display: block;
+  width: 280px !important;
+  height: 280px !important;
+}
+
+.qr-hint {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.btn-reset {
+  margin-top: 1rem;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.btn-reset:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(233, 30, 140, 0.4);
+}
+
+.btn-reset:active {
+  transform: scale(0.97);
+}
+
+/* ── Error toast ────────────────────────────────────────────── */
+
+.error-toast {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e74c3c;
+  color: #fff;
+  padding: 0.8rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  z-index: 50;
+  transition: opacity var(--transition-speed);
+}
+
+/* ── Utility ────────────────────────────────────────────────── */
+
+.hidden {
+  display: none !important;
+}

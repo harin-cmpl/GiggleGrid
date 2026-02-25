@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GiggleGrid — Women's Day Photobooth</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <!-- ── Idle / Camera View ──────────────────────────────── -->
+  <main id="app" class="screen screen--idle">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay" class="overlay-canvas"></canvas>
+
+    <!-- Prompt shown when no face detected -->
+    <div id="prompt" class="prompt">
+      <p>Step in front of the camera!</p>
+    </div>
+
+    <!-- Countdown overlay -->
+    <div id="countdown" class="countdown hidden">
+      <span id="countdown-number"></span>
+    </div>
+
+    <!-- Flash effect -->
+    <div id="flash" class="flash hidden"></div>
+
+    <!-- QR code screen -->
+    <section id="qr-screen" class="qr-screen hidden">
+      <h2>Scan to download your photo!</h2>
+      <div id="qr-container" class="qr-container"></div>
+      <p class="qr-hint">Point your phone camera at the QR code</p>
+      <button id="btn-reset" class="btn-reset">Take Another Photo</button>
+    </section>
+
+    <!-- Error toast -->
+    <div id="error-toast" class="error-toast hidden">
+      <p id="error-message"></p>
+    </div>
+  </main>
+
+  <!-- MediaPipe via CDN -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"
+    crossorigin="anonymous"
+  ></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- QR code library -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- App modules -->
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

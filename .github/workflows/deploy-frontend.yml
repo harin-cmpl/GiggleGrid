@@ -1,0 +1,61 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  deploy:
+    name: Deploy to S3 + CloudFront
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Inject config values
+        run: |
+          sed -i \
+            -e 's|"__API_URL__"|"${{ vars.API_ENDPOINT }}"|g' \
+            -e 's|COUNTDOWN_SECONDS: 5|COUNTDOWN_SECONDS: ${{ vars.COUNTDOWN_SECONDS || '5' }}|g' \
+            -e 's|QR_DISPLAY_SECONDS: 15|QR_DISPLAY_SECONDS: ${{ vars.QR_DISPLAY_SECONDS || '15' }}|g' \
+            -e 's|DETECTION_CONFIDENCE: 0.7|DETECTION_CONFIDENCE: ${{ vars.DETECTION_CONFIDENCE || '0.7' }}|g' \
+            frontend/config.js
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync frontend/ s3://${{ vars.FRONTEND_BUCKET }} \
+            --delete \
+            --cache-control "public, max-age=3600" \
+            --exclude "*.map"
+
+      - name: Set no-cache on config.js
+        run: |
+          aws s3 cp \
+            s3://${{ vars.FRONTEND_BUCKET }}/config.js \
+            s3://${{ vars.FRONTEND_BUCKET }}/config.js \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "application/javascript" \
+            --metadata-directive REPLACE
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"

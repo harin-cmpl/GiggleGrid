@@ -1,0 +1,312 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  GiggleGrid — Women's Day Photobooth backend
+  (Lambda + API Gateway + S3 + CloudFront)
+
+# ── Parameters ───────────────────────────────────────────────
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+
+  CustomDomain:
+    Type: String
+    Default: "__DOMAIN__"
+    Description: Custom domain for CloudFront (e.g. photobooth.example.com)
+
+  AcmCertificateArn:
+    Type: String
+    Default: ""
+    Description: ARN of ACM certificate for the custom domain (us-east-1)
+
+  PresignedUrlExpirySeconds:
+    Type: Number
+    Default: 86400
+
+  S3RetentionDays:
+    Type: Number
+    Default: 7
+
+  MaxImageBytes:
+    Type: Number
+    Default: 10485760
+
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS origin — set to CloudFront domain in production
+
+  GitHubOrg:
+    Type: String
+    Default: ""
+    Description: GitHub organisation/user for OIDC trust
+
+  GitHubRepo:
+    Type: String
+    Default: "GiggleGrid"
+    Description: GitHub repository name for OIDC trust
+
+# ── Conditions ───────────────────────────────────────────────
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref CustomDomain, "__DOMAIN__"]]
+  HasAcmCert: !Not [!Equals [!Ref AcmCertificateArn, ""]]
+  HasGitHubOrg: !Not [!Equals [!Ref GitHubOrg, ""]]
+
+# ── Globals ──────────────────────────────────────────────────
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Timeout: 30
+    Architectures:
+      - x86_64
+
+# ── Resources ────────────────────────────────────────────────
+
+Resources:
+
+  # ── S3: Photo storage ────────────────────────────────────
+
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "gigglegrid-photos-${Environment}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDeletePhotos
+            Status: Enabled
+            ExpirationInDays: !Ref S3RetentionDays
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ["*"]
+            AllowedMethods: [GET]
+            AllowedHeaders: ["*"]
+            MaxAge: 3600
+
+  # ── S3: Frontend static hosting ──────────────────────────
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "gigglegrid-frontend-${Environment}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+
+  # ── CloudFront ───────────────────────────────────────────
+
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "gigglegrid-oac-${Environment}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Aliases:
+          !If
+            - HasCustomDomain
+            - [!Ref CustomDomain]
+            - !Ref "AWS::NoValue"
+        ViewerCertificate:
+          !If
+            - HasAcmCert
+            - AcmCertificateArn: !Ref AcmCertificateArn
+              SslSupportMethod: sni-only
+              MinimumProtocolVersion: TLSv1.2_2021
+            - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: S3FrontendOrigin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3FrontendOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  # ── Lambda ───────────────────────────────────────────────
+
+  PhotoboothFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "gigglegrid-upload-${Environment}"
+      Handler: src.handler.lambda_handler
+      CodeUri: .
+      Environment:
+        Variables:
+          PHOTOS_BUCKET: !Ref PhotosBucket
+          AWS_REGION_NAME: !Ref "AWS::Region"
+          PRESIGNED_URL_EXPIRY_SECONDS: !Ref PresignedUrlExpirySeconds
+          MAX_IMAGE_BYTES: !Ref MaxImageBytes
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PhotosBucket
+      Events:
+        Upload:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PhotoboothApi
+            Path: /upload
+            Method: POST
+        Preflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PhotoboothApi
+            Path: /upload
+            Method: OPTIONS
+
+  # ── API Gateway ──────────────────────────────────────────
+
+  PhotoboothApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+        MaxAge: 3600
+
+  # ── GitHub Actions OIDC Role ─────────────────────────────
+
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: HasGitHubOrg
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Condition: HasGitHubOrg
+    Properties:
+      RoleName: !Sub "gigglegrid-github-actions-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOIDCProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": sts.amazonaws.com
+              StringLike:
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubOrg}/${GitHubRepo}:*"
+      Policies:
+        - PolicyName: DeployPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: S3Deploy
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                  - s3:GetObject
+                Resource:
+                  - !GetAtt FrontendBucket.Arn
+                  - !Sub "${FrontendBucket.Arn}/*"
+              - Sid: CloudFrontInvalidate
+                Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                Resource:
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+              - Sid: SAMDeploy
+                Effect: Allow
+                Action:
+                  - cloudformation:*
+                  - lambda:*
+                  - apigateway:*
+                  - iam:*
+                  - s3:*
+                Resource: "*"
+
+# ── Outputs ──────────────────────────────────────────────────
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${PhotoboothApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+
+  PhotosBucketName:
+    Description: S3 bucket for photos
+    Value: !Ref PhotosBucket
+
+  FrontendBucketName:
+    Description: S3 bucket for frontend static files
+    Value: !Ref FrontendBucket
+
+  CloudFrontDomainName:
+    Description: CloudFront distribution domain
+    Value: !GetAtt CloudFrontDistribution.DomainName
+
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID (for invalidation)
+    Value: !Ref CloudFrontDistribution
+
+  GitHubActionsRoleArn:
+    Condition: HasGitHubOrg
+    Description: IAM role ARN for GitHub Actions OIDC
+    Value: !GetAtt GitHubActionsRole.Arn
