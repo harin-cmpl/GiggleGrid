@@ -85,6 +85,8 @@ def upload_image(
             Params={
                 "Bucket": settings.photos_bucket,
                 "Key": key,
+                "ResponseContentDisposition": "attachment; filename=photo.jpg",
+                "ResponseContentType": "image/jpeg",
             },
             ExpiresIn=settings.presigned_url_expiry_seconds,
         )
