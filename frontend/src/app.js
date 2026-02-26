@@ -151,7 +151,7 @@ function hideProcessing() {
 async function init() {
   try {
     // Preload the frame overlay
-    await preloadFrame("assets/frame.svg");
+    await preloadFrame("assets/frame.png");
   } catch {
     console.warn("Frame overlay not found — photos will have no border");
   }
