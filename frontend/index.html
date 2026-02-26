@@ -30,10 +30,20 @@
 
     <!-- QR code screen -->
     <section id="qr-screen" class="qr-screen hidden">
-      <h2>Scan to download your photo!</h2>
-      <div id="qr-container" class="qr-container"></div>
-      <p class="qr-hint">Point your phone camera at the QR code</p>
-      <button id="btn-reset" class="btn-reset">Take Another Photo</button>
+      <div class="qr-left">
+        <div id="qr-container" class="qr-container"></div>
+      </div>
+      <div class="qr-right">
+        <h2>Scan to download your photo</h2>
+        <p class="qr-hint">Point your phone camera at the QR code to get your snap.</p>
+        <p class="qr-retention">Files are retained for 7 days on S3, then cleaned up automatically.</p>
+        <div class="qr-expiry">
+          <div class="qr-expiry-text">This page closes in</div>
+          <div class="qr-expiry-circle">
+            <span id="qr-expiry-number"></span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Error toast -->

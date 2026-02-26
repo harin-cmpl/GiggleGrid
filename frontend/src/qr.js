@@ -53,6 +53,12 @@ export async function renderQR(url, containerEl) {
 export function showQRScreen(qrScreenEl, onReset) {
   qrScreenEl.classList.remove("hidden");
 
+  const expiryNumberEl = document.getElementById("qr-expiry-number");
+  if (expiryNumberEl) {
+    expiryNumberEl.textContent = String(CONFIG.QR_DISPLAY_SECONDS);
+    runExpiryCounter(expiryNumberEl, CONFIG.QR_DISPLAY_SECONDS);
+  }
+
   // Auto-reset after configured seconds
   resetTimerId = setTimeout(() => {
     hideQRScreen(qrScreenEl);
@@ -70,6 +76,10 @@ export function hideQRScreen(qrScreenEl) {
   if (resetTimerId !== null) {
     clearTimeout(resetTimerId);
     resetTimerId = null;
+  }
+  const expiryNumberEl = document.getElementById("qr-expiry-number");
+  if (expiryNumberEl) {
+    expiryNumberEl.textContent = "";
   }
 }
 
@@ -110,4 +120,17 @@ async function ensureQRCodeLoaded() {
   }
 
   throw lastError ?? new Error("QRCode library not available");
+}
+
+function runExpiryCounter(el, seconds) {
+  let remaining = seconds;
+  const tick = () => {
+    remaining -= 1;
+    if (remaining < 0) return;
+    el.textContent = String(remaining);
+    if (remaining > 0) {
+      setTimeout(tick, 1000);
+    }
+  };
+  setTimeout(tick, 1000);
 }
