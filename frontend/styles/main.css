@@ -95,30 +95,47 @@ body {
   justify-content: center;
   z-index: 20;
   pointer-events: none;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.4) 70%);
+  backdrop-filter: blur(1px);
+  opacity: 0.5; /* 50% see-through */
+  mix-blend-mode: screen;
+}
+
+.countdown::before,
+.countdown::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.countdown::after {
+  inset: 18%;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .countdown span {
   font-size: 12rem;
   font-weight: 800;
-  color: var(--color-text);
-  text-shadow:
-    0 0 40px var(--color-accent),
-    0 0 80px var(--color-primary);
-  animation: count-pop 1s ease-out;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.1em;
+  animation: reel-count 1s ease-out;
 }
 
-@keyframes count-pop {
+@keyframes reel-count {
   0% {
-    transform: scale(2);
+    transform: scale(1.25) rotate(-2deg);
     opacity: 0;
   }
-  50% {
-    transform: scale(1);
+  30% {
     opacity: 1;
   }
   100% {
-    transform: scale(0.9);
-    opacity: 0.8;
+    transform: scale(1) rotate(2deg);
+    opacity: 0.9;
   }
 }
 
