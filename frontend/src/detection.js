@@ -36,7 +36,8 @@ export async function initDetection(callback) {
   });
 
   detector.setOptions({
-    model: "short",
+    // "full" model handles farther faces better (slightly heavier)
+    model: "full",
     minDetectionConfidence: CONFIG.DETECTION_CONFIDENCE,
   });
 
