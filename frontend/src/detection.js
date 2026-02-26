@@ -1,13 +1,13 @@
 /**
- * detection.js — MediaPipe Face Detection wrapper.
+ * detection.js — Blazeface (TF.js) face presence wrapper.
  *
- * Uses the globally-loaded MediaPipe FaceDetection from CDN.
+ * Uses globally-loaded TensorFlow.js + Blazeface (see index.html scripts).
  * Emits a callback when face presence changes.
  */
 
 import { CONFIG } from "../config.js";
 
-/** @type {FaceDetection|null} */
+/** @type {blazeface.BlazeFaceModel|null} */
 let detector = null;
 
 /** Number of consecutive frames with at least one face */
@@ -29,21 +29,8 @@ let onPresenceChange = null;
 export async function initDetection(callback) {
   onPresenceChange = callback;
 
-  /* global FaceDetection */
-  detector = new FaceDetection({
-    locateFile: (file) =>
-      `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
-  });
-
-  detector.setOptions({
-    // "full" model handles farther faces better (slightly heavier)
-    model: "full",
-    minDetectionConfidence: CONFIG.DETECTION_CONFIDENCE,
-  });
-
-  detector.onResults(handleResults);
-
-  await detector.initialize();
+  /* global blazeface */
+  detector = await blazeface.load();
   return detector;
 }
 
@@ -54,7 +41,8 @@ export async function initDetection(callback) {
  */
 export async function detectFrame(videoEl) {
   if (!detector) return;
-  await detector.send({ image: videoEl });
+  const predictions = await detector.estimateFaces(videoEl, false);
+  handleResults(predictions || []);
 }
 
 /**
@@ -62,9 +50,9 @@ export async function detectFrame(videoEl) {
  *
  * @param {Object} results
  */
-function handleResults(results) {
-  const hasFace =
-    results.detections && results.detections.length > 0;
+function handleResults(predictions) {
+  // Blazeface returns an array of predictions with probability
+  const hasFace = predictions.some((p) => p.probability?.[0] >= CONFIG.DETECTION_CONFIDENCE);
 
   if (hasFace) {
     consecutiveFrames++;
@@ -72,8 +60,7 @@ function handleResults(results) {
     consecutiveFrames = 0;
   }
 
-  const shouldBePresent =
-    consecutiveFrames >= CONFIG.DETECTION_FRAME_THRESHOLD;
+  const shouldBePresent = consecutiveFrames >= CONFIG.DETECTION_FRAME_THRESHOLD;
 
   if (shouldBePresent !== personPresent) {
     personPresent = shouldBePresent;
