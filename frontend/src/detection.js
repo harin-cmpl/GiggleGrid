@@ -1,16 +1,23 @@
 /**
- * detection.js — face-api.js TinyFaceDetector wrapper.
+ * detection.js — MediaPipe FaceDetection wrapper (full model).
  *
- * Uses globally-loaded face-api.js (see index.html scripts).
- * Emits a callback when face presence changes.
+ * Uses globally-loaded MediaPipe FaceDetection from CDN.
+ * Pre-downscales the video frame to 640×360 before sending to the
+ * detector so that distant faces occupy a larger relative area,
+ * dramatically improving detection at 2–4 m.
  */
 
 import { CONFIG } from "../config.js";
 
-/** @type {faceapi.TinyFaceDetectorOptions} */
-let detectorOptions = null;
-/** @type {boolean} */
-let modelLoaded = false;
+/** @type {FaceDetection|null} */
+let detector = null;
+
+/** Off-screen canvas used to downscale video before detection */
+let scaleCanvas = null;
+let scaleCtx = null;
+
+const SCALE_W = 640;
+const SCALE_H = 360;
 
 /** Number of consecutive frames with at least one face */
 let consecutiveFrames = 0;
@@ -31,29 +38,38 @@ let onPresenceChange = null;
 export async function initDetection(callback) {
   onPresenceChange = callback;
 
-  /* global faceapi */
-  if (!modelLoaded) {
-    await faceapi.nets.tinyFaceDetector.loadFromUri(
-      "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/",
-    );
-    modelLoaded = true;
-  }
-
-  detectorOptions = new faceapi.TinyFaceDetectorOptions({
-    inputSize: CONFIG.DETECTION_INPUT_SIZE || 320,
-    scoreThreshold: CONFIG.DETECTION_CONFIDENCE,
+  /* global FaceDetection */
+  detector = new FaceDetection({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
   });
+
+  detector.setOptions({
+    model: "full",
+    minDetectionConfidence: CONFIG.DETECTION_CONFIDENCE,
+  });
+
+  detector.onResults(handleResults);
+
+  scaleCanvas = document.createElement("canvas");
+  scaleCanvas.width = SCALE_W;
+  scaleCanvas.height = SCALE_H;
+  scaleCtx = scaleCanvas.getContext("2d");
+
+  await detector.initialize();
+  return detector;
 }
 
 /**
- * Send a video frame to the detector.
+ * Downscale a video frame and send it to the detector.
+ * Smaller frame → distant face occupies a larger fraction → better detection.
  *
  * @param {HTMLVideoElement} videoEl
  */
 export async function detectFrame(videoEl) {
-  if (!modelLoaded) return;
-  const detections = await faceapi.detectAllFaces(videoEl, detectorOptions);
-  handleResults(detections || []);
+  if (!detector || !scaleCtx) return;
+  scaleCtx.drawImage(videoEl, 0, 0, SCALE_W, SCALE_H);
+  await detector.send({ image: scaleCanvas });
 }
 
 /**
@@ -61,8 +77,8 @@ export async function detectFrame(videoEl) {
  *
  * @param {Object} results
  */
-function handleResults(detections) {
-  const hasFace = detections.some((d) => d.score >= CONFIG.DETECTION_CONFIDENCE);
+function handleResults(results) {
+  const hasFace = results.detections && results.detections.length > 0;
 
   if (hasFace) {
     consecutiveFrames++;
