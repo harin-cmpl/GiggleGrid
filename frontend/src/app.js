@@ -40,7 +40,6 @@ const flashEl = document.getElementById("flash");
 const promptEl = document.getElementById("prompt");
 const qrScreenEl = document.getElementById("qr-screen");
 const qrContainer = document.getElementById("qr-container");
-const btnReset = document.getElementById("btn-reset");
 const errorToast = document.getElementById("error-toast");
 const errorMessage = document.getElementById("error-message");
 
@@ -126,13 +125,6 @@ function showError(msg) {
   errorToast.classList.remove("hidden");
   setTimeout(() => errorToast.classList.add("hidden"), 5000);
 }
-
-// ── Manual reset button ──────────────────────────────────────
-
-btnReset.addEventListener("click", () => {
-  hideQRScreen(qrScreenEl);
-  transitionTo(State.IDLE);
-});
 
 // ── Initialisation ───────────────────────────────────────────
 
