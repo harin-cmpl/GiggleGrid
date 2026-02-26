@@ -1,14 +1,16 @@
 /**
- * detection.js — Blazeface (TF.js) face presence wrapper.
+ * detection.js — face-api.js TinyFaceDetector wrapper.
  *
- * Uses globally-loaded TensorFlow.js + Blazeface (see index.html scripts).
+ * Uses globally-loaded face-api.js (see index.html scripts).
  * Emits a callback when face presence changes.
  */
 
 import { CONFIG } from "../config.js";
 
-/** @type {blazeface.BlazeFaceModel|null} */
-let detector = null;
+/** @type {faceapi.TinyFaceDetectorOptions} */
+let detectorOptions = null;
+/** @type {boolean} */
+let modelLoaded = false;
 
 /** Number of consecutive frames with at least one face */
 let consecutiveFrames = 0;
@@ -29,9 +31,18 @@ let onPresenceChange = null;
 export async function initDetection(callback) {
   onPresenceChange = callback;
 
-  /* global blazeface */
-  detector = await blazeface.load();
-  return detector;
+  /* global faceapi */
+  if (!modelLoaded) {
+    await faceapi.nets.tinyFaceDetector.loadFromUri(
+      "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/",
+    );
+    modelLoaded = true;
+  }
+
+  detectorOptions = new faceapi.TinyFaceDetectorOptions({
+    inputSize: CONFIG.DETECTION_INPUT_SIZE || 320,
+    scoreThreshold: CONFIG.DETECTION_CONFIDENCE,
+  });
 }
 
 /**
@@ -40,9 +51,9 @@ export async function initDetection(callback) {
  * @param {HTMLVideoElement} videoEl
  */
 export async function detectFrame(videoEl) {
-  if (!detector) return;
-  const predictions = await detector.estimateFaces(videoEl, false);
-  handleResults(predictions || []);
+  if (!modelLoaded) return;
+  const detections = await faceapi.detectAllFaces(videoEl, detectorOptions);
+  handleResults(detections || []);
 }
 
 /**
@@ -50,9 +61,8 @@ export async function detectFrame(videoEl) {
  *
  * @param {Object} results
  */
-function handleResults(predictions) {
-  // Blazeface returns an array of predictions with probability
-  const hasFace = predictions.some((p) => p.probability?.[0] >= CONFIG.DETECTION_CONFIDENCE);
+function handleResults(detections) {
+  const hasFace = detections.some((d) => d.score >= CONFIG.DETECTION_CONFIDENCE);
 
   if (hasFace) {
     consecutiveFrames++;
