@@ -40,6 +40,8 @@ const flashEl = document.getElementById("flash");
 const promptEl = document.getElementById("prompt");
 const qrScreenEl = document.getElementById("qr-screen");
 const qrContainer = document.getElementById("qr-container");
+const processingOverlay = document.getElementById("processing-overlay");
+const processingImage = document.getElementById("processing-image");
 const errorToast = document.getElementById("error-toast");
 const errorMessage = document.getElementById("error-message");
 
@@ -85,6 +87,7 @@ async function transitionTo(newState) {
     case State.CAPTURE: {
       const base64 = capturePhoto(videoEl);
       await triggerFlash(flashEl);
+      showProcessing(base64);
       transitionTo(State.UPLOAD);
       doUpload(base64);
       break;
@@ -102,6 +105,7 @@ async function transitionTo(newState) {
 
 function showIdle() {
   promptEl.classList.remove("hidden");
+  hideProcessing();
   hideQRScreen(qrScreenEl);
   resetDetection();
 }
@@ -111,8 +115,10 @@ async function doUpload(base64Image) {
     const { url } = await uploadPhoto(base64Image);
     await renderQR(url, qrContainer);
     currentState = State.QR;
+    hideProcessing();
     showQRScreen(qrScreenEl, () => transitionTo(State.IDLE));
   } catch (err) {
+    hideProcessing();
     showError(err.message);
     transitionTo(State.IDLE);
   }
@@ -124,6 +130,20 @@ function showError(msg) {
   errorMessage.textContent = msg;
   errorToast.classList.remove("hidden");
   setTimeout(() => errorToast.classList.add("hidden"), 5000);
+}
+
+// ── Processing overlay helpers ───────────────────────────────
+
+function showProcessing(base64Image) {
+  if (!processingOverlay || !processingImage) return;
+  processingOverlay.classList.remove("hidden");
+  processingImage.src = `data:image/jpeg;base64,${base64Image}`;
+}
+
+function hideProcessing() {
+  if (!processingOverlay || !processingImage) return;
+  processingOverlay.classList.add("hidden");
+  processingImage.removeAttribute("src");
 }
 
 // ── Initialisation ───────────────────────────────────────────
