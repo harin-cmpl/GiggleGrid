@@ -17,10 +17,10 @@ export const CONFIG = Object.freeze({
   API_ENDPOINT: "__API_URL__",
 
   /** MediaPipe face detection confidence threshold (0–1) */
-  DETECTION_CONFIDENCE: 0.7,
+  DETECTION_CONFIDENCE: 0.45,
 
   /** Minimum number of consecutive frames with a face before starting countdown */
-  DETECTION_FRAME_THRESHOLD: 5,
+  DETECTION_FRAME_THRESHOLD: 3,
 
   /** Target camera resolution */
   CAMERA_WIDTH: 1920,
