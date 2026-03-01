@@ -8,10 +8,10 @@
 
 export const CONFIG = Object.freeze({
   /** Seconds to count down after face detection before snap */
-  COUNTDOWN_SECONDS: 5,
+  COUNTDOWN_SECONDS: 7,
 
   /** Seconds to display the QR code before auto-resetting */
-  QR_DISPLAY_SECONDS: 15,
+  QR_DISPLAY_SECONDS: 20,
 
   /** Backend API endpoint (replaced by CI/CD) */
   API_ENDPOINT: "__API_URL__",
