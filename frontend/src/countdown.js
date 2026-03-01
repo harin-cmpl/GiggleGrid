@@ -39,8 +39,10 @@ export function startCountdown(countdownEl, numberEl, taglineEl) {
       if (taglineEl) {
         if (remaining <= 2) {
           taglineEl.classList.remove("hidden");
+          numberEl.classList.add("hidden");
         } else {
           taglineEl.classList.add("hidden");
+          numberEl.classList.remove("hidden");
         }
       }
       // Re-trigger CSS animation by forcing reflow
