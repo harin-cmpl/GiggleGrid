@@ -19,9 +19,8 @@ export const CONFIG = Object.freeze({
   /** MediaPipe face detection confidence threshold (0–1) */
   DETECTION_CONFIDENCE: 0.35,
 
-  /** Minimum number of consecutive frames with a face before starting countdown */
-  // ~90 frames ≈ 1.5–3s depending on device FPS; reduces walk-by triggers
-  DETECTION_FRAME_THRESHOLD: 90,
+  /** Minimum continuous presence in ms before starting countdown (time-based gate) */
+  DETECTION_MIN_PRESENCE_MS: 3000,
 
   /** Target camera resolution */
   CAMERA_WIDTH: 1920,

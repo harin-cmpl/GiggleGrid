@@ -25,6 +25,9 @@ let consecutiveFrames = 0;
 /** Whether we consider a person "present" */
 let personPresent = false;
 
+/** Timestamp when we first saw a face in the current streak */
+let presenceStartMs = null;
+
 /** Callback: (isPresent: boolean) => void */
 let onPresenceChange = null;
 
@@ -81,12 +84,17 @@ function handleResults(results) {
   const hasFace = results.detections && results.detections.length > 0;
 
   if (hasFace) {
+    if (consecutiveFrames === 0) {
+      presenceStartMs = performance.now();
+    }
     consecutiveFrames++;
   } else {
     consecutiveFrames = 0;
+    presenceStartMs = null;
   }
 
-  const shouldBePresent = consecutiveFrames >= CONFIG.DETECTION_FRAME_THRESHOLD;
+  const elapsedMs = presenceStartMs ? performance.now() - presenceStartMs : 0;
+  const shouldBePresent = elapsedMs >= (CONFIG.DETECTION_MIN_PRESENCE_MS || 0);
 
   if (shouldBePresent !== personPresent) {
     personPresent = shouldBePresent;
@@ -102,4 +110,5 @@ function handleResults(results) {
 export function resetDetection() {
   consecutiveFrames = 0;
   personPresent = false;
+  presenceStartMs = null;
 }
