@@ -12,14 +12,16 @@ let timerId = null;
  *
  * @param {HTMLElement} countdownEl  — container element
  * @param {HTMLElement} numberEl     — element showing the number
+ * @param {HTMLElement} [taglineEl]  — optional element for "Cheese" tagline
  * @returns {Promise<void>} resolves when countdown reaches zero
  */
-export function startCountdown(countdownEl, numberEl) {
+export function startCountdown(countdownEl, numberEl, taglineEl) {
   return new Promise((resolve) => {
     let remaining = CONFIG.COUNTDOWN_SECONDS;
 
     countdownEl.classList.remove("hidden");
     numberEl.textContent = remaining;
+    if (taglineEl) taglineEl.classList.add("hidden");
 
     timerId = setInterval(() => {
       remaining--;
@@ -28,11 +30,19 @@ export function startCountdown(countdownEl, numberEl) {
         clearInterval(timerId);
         timerId = null;
         countdownEl.classList.add("hidden");
+        if (taglineEl) taglineEl.classList.add("hidden");
         resolve();
         return;
       }
 
       numberEl.textContent = remaining;
+      if (taglineEl) {
+        if (remaining <= 1) {
+          taglineEl.classList.remove("hidden");
+        } else {
+          taglineEl.classList.add("hidden");
+        }
+      }
       // Re-trigger CSS animation by forcing reflow
       numberEl.classList.remove("count-pop");
       void numberEl.offsetWidth;

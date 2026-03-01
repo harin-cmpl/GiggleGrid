@@ -36,6 +36,7 @@ let currentState = State.IDLE;
 const videoEl = document.getElementById("video");
 const countdownEl = document.getElementById("countdown");
 const countdownNumber = document.getElementById("countdown-number");
+const countdownTagline = document.getElementById("countdown-tagline");
 const flashEl = document.getElementById("flash");
 const promptEl = document.getElementById("prompt");
 const qrScreenEl = document.getElementById("qr-screen");
@@ -78,7 +79,7 @@ async function transitionTo(newState) {
 
     case State.COUNTDOWN:
       promptEl.classList.add("hidden");
-      await startCountdown(countdownEl, countdownNumber);
+      await startCountdown(countdownEl, countdownNumber, countdownTagline);
       // If state changed during countdown (person left), bail
       if (currentState !== State.COUNTDOWN) return;
       transitionTo(State.CAPTURE);
