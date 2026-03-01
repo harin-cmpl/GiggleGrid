@@ -37,7 +37,7 @@ export function startCountdown(countdownEl, numberEl, taglineEl) {
 
       numberEl.textContent = remaining;
       if (taglineEl) {
-        if (remaining <= 1) {
+        if (remaining <= 2) {
           taglineEl.classList.remove("hidden");
         } else {
           taglineEl.classList.add("hidden");

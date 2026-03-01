@@ -20,7 +20,8 @@ export const CONFIG = Object.freeze({
   DETECTION_CONFIDENCE: 0.35,
 
   /** Minimum number of consecutive frames with a face before starting countdown */
-  DETECTION_FRAME_THRESHOLD: 1,
+  // ~90 frames ≈ 1.5–3s depending on device FPS; reduces walk-by triggers
+  DETECTION_FRAME_THRESHOLD: 90,
 
   /** Target camera resolution */
   CAMERA_WIDTH: 1920,
