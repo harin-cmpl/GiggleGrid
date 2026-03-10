@@ -72,7 +72,7 @@ async function transitionTo(newState) {
       break;
 
     case State.COUNTDOWN:
-      promptEl.classList.add("hidden");
+      if (promptEl) promptEl.classList.add("hidden");
       await startCountdown(countdownEl, countdownNumber, countdownTagline);
       // If state changed during countdown, bail
       if (currentState !== State.COUNTDOWN) return;
@@ -99,7 +99,7 @@ async function transitionTo(newState) {
 }
 
 function showIdle() {
-  promptEl.classList.remove("hidden");
+  if (promptEl) promptEl.classList.remove("hidden");
   hideProcessing();
   hideQRScreen(qrScreenEl);
   resetDetection();
@@ -151,6 +151,17 @@ async function init() {
     console.warn("Frame overlay not found — photos will have no border");
   }
 
+  // Wire manual trigger even if camera init fails later (guarded for null)
+  if (shootBtn) {
+    shootBtn.addEventListener("click", () => {
+      console.log("[GiggleGrid] Shoot button clicked. state=", currentState);
+      if (currentState !== State.IDLE) return;
+      // Ensure state is explicitly set before starting countdown
+      currentState = State.IDLE;
+      transitionTo(State.COUNTDOWN);
+    });
+  }
+
   try {
     await initCamera(videoEl);
   } catch (err) {
@@ -159,11 +170,9 @@ async function init() {
     return;
   }
 
-  // Bypass detection: manual trigger via button
-  shootBtn.addEventListener("click", () => {
-    if (currentState !== State.IDLE) return;
-    transitionTo(State.COUNTDOWN);
-  });
+  // Ensure UI is reset on load
+  currentState = State.IDLE;
+  showIdle();
 }
 
 init();
