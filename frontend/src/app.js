@@ -5,6 +5,7 @@
  */
 
 import { initCamera } from "./camera.js";
+// import detection utilities (kept for potential re-enable, but unused now)
 import {
   initDetection,
   detectFrame,
@@ -39,6 +40,7 @@ const countdownNumber = document.getElementById("countdown-number");
 const countdownTagline = document.getElementById("countdown-tagline");
 const flashEl = document.getElementById("flash");
 const promptEl = document.getElementById("prompt");
+const shootBtn = document.getElementById("btn-shoot");
 const qrScreenEl = document.getElementById("qr-screen");
 const qrContainer = document.getElementById("qr-container");
 const processingOverlay = document.getElementById("processing-overlay");
@@ -46,28 +48,20 @@ const processingImage = document.getElementById("processing-image");
 const errorToast = document.getElementById("error-toast");
 const errorMessage = document.getElementById("error-message");
 
-// ── Detection loop ───────────────────────────────────────────
+// ── Detection loop (bypassed) ────────────────────────────────
 
-let animFrameId = null;
-
-function detectionLoop() {
-  if (currentState === State.IDLE || currentState === State.COUNTDOWN) {
-    detectFrame(videoEl);
-  }
-  animFrameId = requestAnimationFrame(detectionLoop);
-}
+// let animFrameId = null;
+// function detectionLoop() {
+//   if (currentState === State.IDLE || currentState === State.COUNTDOWN) {
+//     detectFrame(videoEl);
+//   }
+//   animFrameId = requestAnimationFrame(detectionLoop);
+// }
 
 // ── State transitions ────────────────────────────────────────
 
-function onPersonPresenceChange(isPresent) {
-  if (isPresent && currentState === State.IDLE) {
-    transitionTo(State.COUNTDOWN);
-  } else if (!isPresent && currentState === State.COUNTDOWN) {
-    cancelCountdown(countdownEl);
-    resetDetection();
-    transitionTo(State.IDLE);
-  }
-}
+// Detection-driven transitions bypassed
+function onPersonPresenceChange() {}
 
 async function transitionTo(newState) {
   currentState = newState;
@@ -80,7 +74,7 @@ async function transitionTo(newState) {
     case State.COUNTDOWN:
       promptEl.classList.add("hidden");
       await startCountdown(countdownEl, countdownNumber, countdownTagline);
-      // If state changed during countdown (person left), bail
+      // If state changed during countdown, bail
       if (currentState !== State.COUNTDOWN) return;
       transitionTo(State.CAPTURE);
       break;
@@ -165,16 +159,11 @@ async function init() {
     return;
   }
 
-  try {
-    await initDetection(onPersonPresenceChange);
-  } catch (err) {
-    showError("Face detection failed to load.");
-    console.error("Detection init failed:", err);
-    return;
-  }
-
-  // Start the detection loop
-  detectionLoop();
+  // Bypass detection: manual trigger via button
+  shootBtn.addEventListener("click", () => {
+    if (currentState !== State.IDLE) return;
+    transitionTo(State.COUNTDOWN);
+  });
 }
 
 init();
