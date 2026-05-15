@@ -48,3 +48,23 @@ class UploadFailedError(PhotoboothError):
 
     def __init__(self, message: str = "Failed to upload image"):
         super().__init__(message)
+
+
+class NoPhotosAvailableError(PhotoboothError):
+    """Raised when there are no photos in the bucket yet."""
+
+    status_code = 404
+    error_code = "NO_PHOTOS_AVAILABLE"
+
+    def __init__(self, message: str = "No photos available yet"):
+        super().__init__(message)
+
+
+class PhotoFetchFailedError(PhotoboothError):
+    """Raised when fetching a random photo from S3 fails."""
+
+    status_code = 502
+    error_code = "PHOTO_FETCH_FAILED"
+
+    def __init__(self, message: str = "Failed to fetch a photo"):
+        super().__init__(message)

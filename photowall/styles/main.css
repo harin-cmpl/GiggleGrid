@@ -1,0 +1,145 @@
+:root {
+  --wall-bg: #000748;
+  --wall-text: #ffbf3a;
+  --wall-card: #0b1030;
+  --wall-card-border: rgba(255, 191, 58, 0.35);
+  --wall-shadow: rgba(0, 0, 0, 0.5);
+  --glow-left: rgba(255, 191, 58, 0.18);
+  --glow-right: rgba(255, 211, 110, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: radial-gradient(circle at 15% 20%, #151f6f 0%, var(--wall-bg) 55%);
+  color: var(--wall-text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.wall-app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.wall-glow {
+  position: absolute;
+  width: 42vmax;
+  height: 42vmax;
+  border-radius: 50%;
+  filter: blur(48px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wall-glow--left {
+  top: -20vmax;
+  left: -8vmax;
+  background: var(--glow-left);
+}
+
+.wall-glow--right {
+  right: -10vmax;
+  bottom: -20vmax;
+  background: var(--glow-right);
+}
+
+.wall-header {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.wall-kicker {
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.wall-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.6vw, 2.8rem);
+  letter-spacing: 0.04em;
+}
+
+.stage {
+  position: relative;
+  width: min(85vw, 1200px);
+  aspect-ratio: 4 / 3;
+  z-index: 2;
+}
+
+.photo-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wall-card);
+  border-radius: 1rem;
+  border: 2px solid var(--wall-card-border);
+  box-shadow: 0 24px 56px var(--wall-shadow);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px) scale(0.96) rotate(var(--tilt));
+  transition:
+    opacity 0.85s ease,
+    transform 0.85s ease,
+    filter 0.85s ease;
+  filter: saturate(85%);
+}
+
+.photo-card.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1) rotate(var(--tilt));
+  filter: saturate(100%);
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.status {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+@media (max-width: 900px) {
+  .wall-app {
+    gap: 1.2rem;
+    padding: 1rem;
+  }
+
+  .stage {
+    width: 92vw;
+  }
+
+  .wall-header h1 {
+    font-size: clamp(1.3rem, 5vw, 2rem);
+  }
+
+  .status {
+    font-size: 0.9rem;
+  }
+}

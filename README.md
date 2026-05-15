@@ -14,11 +14,16 @@ Browser (laptop at event)
   ├─ Countdown → Canvas capture → Frame overlay
   └─ POST /upload → API Gateway → Lambda → S3
                                               └─ presigned URL → QR code
+
+Wall Display (wall.zeusserver.in)
+  └─ GET /photos/random → API Gateway → Lambda → S3
+                                └─ random photo presigned URL → slideshow
 ```
 
 | Component | Tech |
 |-----------|------|
 | Frontend  | Vanilla JS (ES modules), HTML5 Canvas, MediaPipe |
+| Photo Wall | Vanilla JS (ES modules), CSS animations, CloudFront |
 | Backend   | AWS Lambda (Python 3.12), API Gateway HTTP API |
 | Storage   | S3 (private, presigned URLs, lifecycle auto-delete) |
 | Hosting   | S3 static site + CloudFront (HTTPS, custom domain) |
@@ -71,9 +76,12 @@ sam deploy \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
     Environment=production \
-    CustomDomain=gigglegrid.zeusserver.in \
+    CustomDomain=gigglegrin.zeusserver.in \
     AcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT>:certificate/<CERT_ID> \
-    AllowedOrigin=https://gigglegrid.zeusserver.in \
+    AllowedOrigin=https://gigglegrin.zeusserver.in \
+    WallAllowedOrigin=https://wall.zeusserver.in \
+    WallDomain=wall.zeusserver.in \
+    WallAcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT>:certificate/<CERT_ID> \
     PresignedUrlExpirySeconds=86400 \
     S3RetentionDays=7 \
     MaxImageBytes=10485760 \
@@ -84,7 +92,7 @@ sam deploy \
 Notes:
 - The ACM certificate **must be in us-east-1** (CloudFront requirement).
 - `--resolve-s3` will create a managed artifacts bucket for you.
-- After deploy, capture **Outputs** (`ApiUrl`, `FrontendBucketName`, `CloudFrontDistributionId`, `CloudFrontDomainName`).
+- After deploy, capture **Outputs** (`ApiUrl`, `FrontendBucketName`, `CloudFrontDistributionId`, `CloudFrontDomainName`, `PhotoWallCloudFrontDistributionId`, `PhotoWallCloudFrontDomainName`).
 
 ### 3. Upload the frontend
 
@@ -117,9 +125,13 @@ Then add these **GitHub repository secrets and variables**:
 | Variable | `API_ENDPOINT` | From SAM output `ApiUrl` |
 | Variable | `FRONTEND_BUCKET` | From SAM output `FrontendBucketName` |
 | Variable | `CLOUDFRONT_DISTRIBUTION_ID` | From SAM output `CloudFrontDistributionId` |
+| Variable | `PHOTOWALL_CLOUDFRONT_DISTRIBUTION_ID` | From SAM output `PhotoWallCloudFrontDistributionId` |
 | Variable | `CUSTOM_DOMAIN` | Your domain (optional) |
+| Variable | `WALL_DOMAIN` | `wall.zeusserver.in` (or your wall domain) |
 | Variable | `COUNTDOWN_SECONDS` | `5` (or your preference) |
 | Variable | `QR_DISPLAY_SECONDS` | `15` |
+| Variable | `SLIDE_DURATION_SECONDS` | `10` |
+| Variable | `WALL_ALLOWED_ORIGIN` | `https://wall.zeusserver.in` |
 | Variable | `S3_RETENTION_DAYS` | `7` |
 
 ---
@@ -154,6 +166,18 @@ python3 -m http.server 8000
 
 > **Note:** Update `API_ENDPOINT` in `frontend/config.js` to point to your deployed API Gateway URL, or run `sam local start-api` in the backend directory for a local Lambda.
 
+### Photo Wall
+
+Serve the wall frontend locally:
+
+```bash
+cd photowall
+python3 -m http.server 8001
+# Open http://localhost:8001
+```
+
+> **Note:** Update `API_ENDPOINT` in `photowall/config.js` to your deployed API URL.
+
 ---
 
 ## Configuration
@@ -170,6 +194,14 @@ All tuneable values are runtime-configurable — no code changes or full redeplo
 | `DETECTION_CONFIDENCE` | `0.7` | Face detection threshold (0–1) |
 | `DETECTION_FRAME_THRESHOLD` | `5` | Consecutive frames with face before countdown |
 
+### Photo Wall Frontend (`photowall/config.js`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_ENDPOINT` | — | Backend API URL (injected by CI/CD) |
+| `SLIDE_DURATION_SECONDS` | `10` | Seconds each photo is shown |
+| `FETCH_RETRY_MS` | `3000` | Retry delay after fetch failures |
+
 ### Backend (Lambda environment variables)
 
 | Variable | Default | Description |
@@ -178,6 +210,7 @@ All tuneable values are runtime-configurable — no code changes or full redeplo
 | `MAX_IMAGE_BYTES` | `10485760` | Max upload size (10 MB) |
 | `S3_RETENTION_DAYS` | `7` | Auto-delete photos after N days |
 | `ALLOWED_ORIGIN` | `*` | CORS origin |
+| `WALL_ALLOWED_ORIGIN` | `*` | CORS origin for wall domain |
 
 ---
 
@@ -208,10 +241,16 @@ GiggleGrid/
 │   │   └── qr.js               # QR code render + auto-reset
 │   ├── styles/main.css
 │   └── assets/frame.svg        # Placeholder photobooth frame
+├── photowall/
+│   ├── index.html              # Wall slideshow page
+│   ├── config.js               # Wall runtime config
+│   ├── src/app.js              # Random-photo slideshow loop
+│   └── styles/main.css         # Wall animations + polaroid cards
 ├── backend/
 │   ├── src/
 │   │   ├── handler.py          # Lambda entry point
 │   │   ├── upload.py           # S3 upload + presigned URL
+│   │   ├── photos.py           # Random photo retrieval endpoint
 │   │   ├── config.py           # Env var parsing
 │   │   └── exceptions.py       # Typed errors
 │   ├── tests/
@@ -221,6 +260,7 @@ GiggleGrid/
 ├── .github/workflows/
 │   ├── ci.yml                  # Lint + test on PRs
 │   ├── deploy-frontend.yml     # S3 sync + CloudFront invalidation
+│   ├── deploy-photowall.yml    # Wall sync + dual invalidation
 │   └── deploy-backend.yml      # SAM build + deploy
 └── .env.example
 ```

@@ -50,6 +50,9 @@ class Settings:
     allowed_origin: str = field(
         default_factory=lambda: _env("ALLOWED_ORIGIN", "*"),
     )
+    wall_allowed_origin: str = field(
+        default_factory=lambda: _env("WALL_ALLOWED_ORIGIN", "*"),
+    )
     max_image_bytes: int = field(
         # 10 MB default
         default_factory=lambda: _env_int("MAX_IMAGE_BYTES", 10_485_760),
