@@ -69,12 +69,22 @@ class TestUploadImage:
 class TestLambdaHandler:
     """Tests for the Lambda entry point."""
 
-    def _make_event(self, method="POST", body=None):
+    def _make_event(
+        self,
+        method="POST",
+        path="/upload",
+        body=None,
+        headers=None,
+    ):
         return {
             "requestContext": {
-                "http": {"method": method},
+                "http": {
+                    "method": method,
+                    "path": path,
+                },
             },
-            "body": json.dumps(body) if body else None,
+            "headers": headers or {},
+            "body": json.dumps(body) if body is not None else None,
         }
 
     def _setup_bucket(self):
@@ -82,6 +92,16 @@ class TestLambdaHandler:
 
         client = boto3.client("s3", region_name="us-east-1")
         client.create_bucket(Bucket="test-photos")
+        return client
+
+    def _put_photo(self, key="photos/example.jpg"):
+        client = self._setup_bucket()
+        client.put_object(
+            Bucket="test-photos",
+            Key=key,
+            Body=b"\xff\xd8" + b"\x00" * 24 + b"\xff\xd9",
+            ContentType="image/jpeg",
+        )
 
     def test_options_returns_204(self):
         self._setup_bucket()
@@ -93,9 +113,33 @@ class TestLambdaHandler:
         resp = lambda_handler(self._make_event("GET"), None)
         assert resp["statusCode"] == 405
 
+    def test_get_random_photo_empty_returns_404(self):
+        self._setup_bucket()
+        resp = lambda_handler(
+            self._make_event("GET", path="/photos/random"),
+            None,
+        )
+        assert resp["statusCode"] == 404
+        body = json.loads(resp["body"])
+        assert body["error"] == "NO_PHOTOS_AVAILABLE"
+
+    def test_get_random_photo_returns_200(self):
+        self._put_photo(key="photos/random-1.jpg")
+        resp = lambda_handler(
+            self._make_event("GET", path="/photos/random"),
+            None,
+        )
+        assert resp["statusCode"] == 200
+        body = json.loads(resp["body"])
+        assert body["key"] == "photos/random-1.jpg"
+        assert "url" in body
+
     def test_missing_image_returns_400(self):
         self._setup_bucket()
-        resp = lambda_handler(self._make_event("POST", {"foo": "bar"}), None)
+        resp = lambda_handler(
+            self._make_event("POST", body={"foo": "bar"}),
+            None,
+        )
         assert resp["statusCode"] == 400
         body = json.loads(resp["body"])
         assert body["error"] == "MISSING_IMAGE"
@@ -110,7 +154,7 @@ class TestLambdaHandler:
     def test_successful_upload_returns_200(self):
         self._setup_bucket()
         resp = lambda_handler(
-            self._make_event("POST", {"image": make_jpeg_base64()}),
+            self._make_event("POST", body={"image": make_jpeg_base64()}),
             None,
         )
         assert resp["statusCode"] == 200
@@ -121,9 +165,31 @@ class TestLambdaHandler:
     def test_cors_headers_present(self):
         self._setup_bucket()
         resp = lambda_handler(
-            self._make_event("POST", {"image": make_jpeg_base64()}),
+            self._make_event("POST", body={"image": make_jpeg_base64()}),
             None,
         )
         headers = resp["headers"]
         assert "Access-Control-Allow-Origin" in headers
         assert "Access-Control-Allow-Methods" in headers
+
+    def test_wall_origin_is_reflected_for_random_photo(self, monkeypatch):
+        monkeypatch.setenv(
+            "ALLOWED_ORIGIN", "https://gigglegrin.zeusserver.in"
+        )
+        monkeypatch.setenv("WALL_ALLOWED_ORIGIN", "https://wall.zeusserver.in")
+        self._put_photo(key="photos/random-2.jpg")
+
+        resp = lambda_handler(
+            self._make_event(
+                "GET",
+                path="/photos/random",
+                headers={"Origin": "https://wall.zeusserver.in"},
+            ),
+            None,
+        )
+
+        assert resp["statusCode"] == 200
+        assert (
+            resp["headers"]["Access-Control-Allow-Origin"]
+            == "https://wall.zeusserver.in"
+        )

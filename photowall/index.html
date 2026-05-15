@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GiggleGrid Wall — Live Slideshow</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <main class="wall-app">
+    <div class="wall-glow wall-glow--left" aria-hidden="true"></div>
+    <div class="wall-glow wall-glow--right" aria-hidden="true"></div>
+
+    <header class="wall-header">
+      <p class="wall-kicker">GiggleGrid Live Wall</p>
+      <h1>Women's Day Photo Wall</h1>
+    </header>
+
+    <section id="stage" class="stage" aria-live="polite">
+      <article class="photo-card" data-slot="0" style="--tilt: -2deg">
+        <img class="photo-img" alt="Wall photo" />
+      </article>
+      <article class="photo-card" data-slot="1" style="--tilt: 2deg">
+        <img class="photo-img" alt="Wall photo" />
+      </article>
+    </section>
+
+    <p id="status" class="status">Loading live photos...</p>
+  </main>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import sys
 
 from .config import get_settings
 from .exceptions import PhotoboothError
+from .photos import get_random_photo
 from .upload import upload_image
 
 # Configure structured logging
@@ -27,9 +28,35 @@ def _cors_headers(origin: str = "*") -> dict:
     """Return CORS headers restricted to the allowed origin."""
     return {
         "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
+
+
+def _resolve_origin(event: dict, settings) -> str:
+    """Resolve response CORS origin for booth and wall frontends."""
+    request_headers = event.get("headers") or {}
+    request_origin = request_headers.get("origin") or request_headers.get(
+        "Origin"
+    )
+    configured_origins = [
+        settings.allowed_origin,
+        settings.wall_allowed_origin,
+    ]
+
+    if "*" in configured_origins:
+        return "*"
+
+    if request_origin and request_origin in configured_origins:
+        return request_origin
+
+    return settings.allowed_origin
+
+
+def _request_path(event: dict) -> str:
+    """Return request path across API Gateway event variants."""
+    http_path = event.get("requestContext", {}).get("http", {}).get("path")
+    return http_path or event.get("rawPath") or event.get("path") or ""
 
 
 def _response(
@@ -51,7 +78,7 @@ def _response(
 def lambda_handler(event: dict, context: object) -> dict:
     """Lambda entry point for API Gateway HTTP API integration."""
     settings = get_settings()
-    origin = settings.allowed_origin
+    origin = _resolve_origin(event, settings)
 
     # Handle CORS preflight
     http_method = (
@@ -59,15 +86,56 @@ def lambda_handler(event: dict, context: object) -> dict:
         .get("http", {})
         .get("method", event.get("httpMethod", ""))
     )
+    request_path = _request_path(event)
 
     if http_method == "OPTIONS":
         return _response(204, {}, origin)
+
+    if http_method == "GET":
+        if not request_path.endswith("/photos/random"):
+            return _response(
+                405,
+                {
+                    "error": "METHOD_NOT_ALLOWED",
+                    "message": "Use POST /upload or GET /photos/random",
+                },
+                origin,
+            )
+
+        try:
+            result = get_random_photo(settings)
+        except PhotoboothError as exc:
+            logger.warning(
+                "Photo fetch rejected: %s — %s",
+                exc.error_code,
+                exc.message,
+            )
+            return _response(exc.status_code, exc.to_dict(), origin)
+        except Exception:
+            logger.exception("Unhandled error during photo fetch")
+            return _response(
+                500,
+                {
+                    "error": "INTERNAL_ERROR",
+                    "message": "An unexpected error occurred",
+                },
+                origin,
+            )
+
+        return _response(200, result, origin)
 
     # Only accept POST
     if http_method != "POST":
         return _response(
             405,
             {"error": "METHOD_NOT_ALLOWED", "message": "Use POST"},
+            origin,
+        )
+
+    if request_path and not request_path.endswith("/upload"):
+        return _response(
+            404,
+            {"error": "NOT_FOUND", "message": "Route not found"},
             origin,
         )
 

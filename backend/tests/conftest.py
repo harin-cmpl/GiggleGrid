@@ -17,6 +17,7 @@ def _env_setup(monkeypatch):
     monkeypatch.setenv("AWS_REGION", "us-east-1")
     monkeypatch.setenv("PRESIGNED_URL_EXPIRY_SECONDS", "3600")
     monkeypatch.setenv("ALLOWED_ORIGIN", "*")
+    monkeypatch.setenv("WALL_ALLOWED_ORIGIN", "*")
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")

@@ -61,6 +61,9 @@ jobs:
               S3RetentionDays=${{ vars.S3_RETENTION_DAYS || '7' }} \
               MaxImageBytes=${{ vars.MAX_IMAGE_BYTES || '10485760' }} \
               AllowedOrigin=${{ vars.ALLOWED_ORIGIN || '*' }} \
+              WallAllowedOrigin=${{ vars.WALL_ALLOWED_ORIGIN || '*' }} \
+              WallDomain=${{ vars.WALL_DOMAIN || 'wall.zeusserver.in' }} \
+              WallAcmCertificateArn=${{ secrets.WALL_ACM_CERTIFICATE_ARN || secrets.ACM_CERTIFICATE_ARN || '' }} \
               GitHubOrg=${{ vars.ORG || github.repository_owner }} \
               GitHubRepo=${{ vars.REPO || github.event.repository.name }}
         working-directory: backend

@@ -39,6 +39,21 @@ Parameters:
     Default: "*"
     Description: CORS origin — set to CloudFront domain in production
 
+  WallAllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS origin for wall frontend domain
+
+  WallDomain:
+    Type: String
+    Default: wall.zeusserver.in
+    Description: Custom domain for photo wall CloudFront distribution
+
+  WallAcmCertificateArn:
+    Type: String
+    Default: ""
+    Description: ARN of ACM certificate for wall domain (us-east-1)
+
   GitHubOrg:
     Type: String
     Default: ""
@@ -54,6 +69,7 @@ Parameters:
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomain, "__DOMAIN__"]]
   HasAcmCert: !Not [!Equals [!Ref AcmCertificateArn, ""]]
+  HasWallAcmCert: !Not [!Equals [!Ref WallAcmCertificateArn, ""]]
   HasGitHubOrg: !Not [!Equals [!Ref GitHubOrg, ""]]
 
 # ── Globals ──────────────────────────────────────────────────
@@ -120,7 +136,9 @@ Resources:
             Resource: !Sub "${FrontendBucket.Arn}/*"
             Condition:
               StringEquals:
-                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+                "AWS:SourceArn":
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${PhotoWallCloudFrontDistribution}"
 
   # ── CloudFront ───────────────────────────────────────────
 
@@ -175,6 +193,58 @@ Resources:
             ResponseCode: 200
             ResponsePagePath: /index.html
 
+  PhotoWallCloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "gigglegrid-wall-oac-${Environment}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  PhotoWallCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Aliases:
+          !If
+            - HasWallAcmCert
+            - [!Ref WallDomain]
+            - !Ref "AWS::NoValue"
+        ViewerCertificate:
+          !If
+            - HasWallAcmCert
+            - AcmCertificateArn: !Ref WallAcmCertificateArn
+              SslSupportMethod: sni-only
+              MinimumProtocolVersion: TLSv1.2_2021
+            - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: S3PhotoWallOrigin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref PhotoWallCloudFrontOAC
+            OriginPath: /photowall
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3PhotoWallOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
   # ── Lambda ───────────────────────────────────────────────
 
   PhotoboothFunction:
@@ -190,6 +260,7 @@ Resources:
           PRESIGNED_URL_EXPIRY_SECONDS: !Ref PresignedUrlExpirySeconds
           MAX_IMAGE_BYTES: !Ref MaxImageBytes
           ALLOWED_ORIGIN: !Ref AllowedOrigin
+          WALL_ALLOWED_ORIGIN: !Ref WallAllowedOrigin
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref PhotosBucket
@@ -206,6 +277,18 @@ Resources:
             ApiId: !Ref PhotoboothApi
             Path: /upload
             Method: OPTIONS
+        RandomPhoto:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PhotoboothApi
+            Path: /photos/random
+            Method: GET
+        RandomPhotoPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PhotoboothApi
+            Path: /photos/random
+            Method: OPTIONS
 
   # ── API Gateway ──────────────────────────────────────────
 
@@ -216,7 +299,9 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
+          - !Ref WallAllowedOrigin
         AllowMethods:
+          - GET
           - POST
           - OPTIONS
         AllowHeaders:
@@ -307,6 +392,14 @@ Outputs:
   CloudFrontDistributionId:
     Description: CloudFront distribution ID (for invalidation)
     Value: !Ref CloudFrontDistribution
+
+  PhotoWallCloudFrontDomainName:
+    Description: Photo wall CloudFront distribution domain
+    Value: !GetAtt PhotoWallCloudFrontDistribution.DomainName
+
+  PhotoWallCloudFrontDistributionId:
+    Description: Photo wall CloudFront distribution ID (for invalidation)
+    Value: !Ref PhotoWallCloudFrontDistribution
 
   GitHubActionsRoleArn:
     Condition: HasGitHubOrg
