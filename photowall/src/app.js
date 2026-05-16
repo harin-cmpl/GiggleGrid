@@ -72,11 +72,20 @@ function swapToPhoto(photoData, photoKey) {
 
   nextImage.src = photoData.src;
 
-  // Set stage size based on image dimensions + 100px padding (50px each side)
-  const stageWidth = photoData.width + 100;
-  const stageHeight = photoData.height + 100;
+  // Set stage size based on image dimensions + padding
+  const stageWidth = photoData.width + 50;  // 25px left + 25px right
+  const stageHeight = photoData.height + 100;  // 50px top + 50px bottom
   stageEl.style.width = `${stageWidth}px`;
   stageEl.style.height = `${stageHeight}px`;
+
+  // Update z-indexes: newly updated card gets highest z-index
+  cardEls.forEach((card, index) => {
+    if (index === nextIndex) {
+      card.style.setProperty("--z", cardEls.length);
+    } else {
+      card.style.setProperty("--z", index + 1);
+    }
+  });
 
   requestAnimationFrame(() => {
     nextCard.classList.add("is-visible");
