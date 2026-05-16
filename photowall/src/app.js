@@ -55,7 +55,7 @@ async function fetchRandomPhoto() {
 async function preloadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img.src);
+    img.onload = () => resolve({ src: img.src, width: img.naturalWidth, height: img.naturalHeight });
     img.onerror = reject;
     img.src = url;
   });
@@ -65,12 +65,18 @@ function showStatus(message) {
   statusEl.textContent = message;
 }
 
-function swapToPhoto(photoUrl, photoKey) {
+function swapToPhoto(photoData, photoKey) {
   const nextIndex = (activeIndex + 1) % cardEls.length;
   const nextCard = cardEls[nextIndex];
   const nextImage = nextCard.querySelector(".photo-img");
 
-  nextImage.src = photoUrl;
+  nextImage.src = photoData.src;
+
+  // Set stage size based on image dimensions + 100px padding (50px each side)
+  const stageWidth = photoData.width + 100;
+  const stageHeight = photoData.height + 100;
+  stageEl.style.width = `${stageWidth}px`;
+  stageEl.style.height = `${stageHeight}px`;
 
   requestAnimationFrame(() => {
     nextCard.classList.add("is-visible");
@@ -109,8 +115,8 @@ async function runSlideshow() {
         continue;
       }
 
-      const preloadedUrl = await preloadImage(photo.url);
-      swapToPhoto(preloadedUrl, photo.key);
+      const photoData = await preloadImage(photo.url);
+      swapToPhoto(photoData, photo.key);
       await sleep(slideDurationMs);
     } catch (err) {
       if (err.code === "NO_PHOTOS_AVAILABLE") {
