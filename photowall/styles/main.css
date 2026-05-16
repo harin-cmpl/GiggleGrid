@@ -19,7 +19,7 @@ body {
   margin: 0;
   background: radial-gradient(circle at 15% 20%, #151f6f 0%, var(--wall-bg) 55%);
   color: var(--wall-text);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Playfair Display", "Segoe UI", serif;
   overflow: hidden;
 }
 
