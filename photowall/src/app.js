@@ -68,15 +68,12 @@ function showStatus(message) {
 function swapToPhoto(photoUrl, photoKey) {
   const nextIndex = (activeIndex + 1) % cardEls.length;
   const nextCard = cardEls[nextIndex];
-  const activeCard = cardEls[activeIndex];
   const nextImage = nextCard.querySelector(".photo-img");
 
-  nextCard.style.setProperty("--tilt", randomTilt());
   nextImage.src = photoUrl;
 
   requestAnimationFrame(() => {
     nextCard.classList.add("is-visible");
-    activeCard.classList.remove("is-visible");
     activeIndex = nextIndex;
   });
 
