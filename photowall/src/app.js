@@ -72,15 +72,17 @@ function swapToPhoto(photoData, photoKey) {
 
   topImage.src = photoData.src;
 
+  // Randomize the tilt angle for the top card
+  topCard.style.setProperty("--tilt", randomTilt());
+
   // Set stage size based on image dimensions + padding
   const stageWidth = photoData.width + 50;  // 25px left + 25px right
   const stageHeight = photoData.height + 100;  // 50px top + 50px bottom
   stageEl.style.width = `${stageWidth}px`;
   stageEl.style.height = `${stageHeight}px`;
 
-  requestAnimationFrame(() => {
-    topCard.classList.add("is-visible");
-  });
+  // Make all cards visible for stacked effect
+  cardEls.forEach(card => card.classList.add("is-visible"));
 
   if (!hasShownFirstPhoto) {
     hasShownFirstPhoto = true;
