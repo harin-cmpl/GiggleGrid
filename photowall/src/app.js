@@ -66,11 +66,11 @@ function showStatus(message) {
 }
 
 function swapToPhoto(photoData, photoKey) {
-  const nextIndex = (activeIndex + 1) % cardEls.length;
-  const nextCard = cardEls[nextIndex];
-  const nextImage = nextCard.querySelector(".photo-img");
+  // Always update card 2 (index 2) which is the topmost
+  const topCard = cardEls[2];
+  const topImage = topCard.querySelector(".photo-img");
 
-  nextImage.src = photoData.src;
+  topImage.src = photoData.src;
 
   // Set stage size based on image dimensions + padding
   const stageWidth = photoData.width + 50;  // 25px left + 25px right
@@ -78,18 +78,8 @@ function swapToPhoto(photoData, photoKey) {
   stageEl.style.width = `${stageWidth}px`;
   stageEl.style.height = `${stageHeight}px`;
 
-  // Update z-indexes: newly updated card gets highest z-index
-  cardEls.forEach((card, index) => {
-    if (index === nextIndex) {
-      card.style.setProperty("--z", cardEls.length);
-    } else {
-      card.style.setProperty("--z", index + 1);
-    }
-  });
-
   requestAnimationFrame(() => {
-    nextCard.classList.add("is-visible");
-    activeIndex = nextIndex;
+    topCard.classList.add("is-visible");
   });
 
   if (!hasShownFirstPhoto) {
