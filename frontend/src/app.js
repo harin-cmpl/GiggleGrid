@@ -146,7 +146,7 @@ function hideProcessing() {
 async function init() {
   try {
     // Preload the frame overlay
-    await preloadFrame("assets/frame.png");
+    await preloadFrame("assets/family-day-frame.png");
   } catch {
     console.warn("Frame overlay not found — photos will have no border");
   }
